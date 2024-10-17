@@ -12,8 +12,9 @@ import './main.css';
 import { DetailsList, IColumn, DetailsListLayoutMode } from '@fluentui/react';
 import { mergeStyles } from '@fluentui/react/lib/Styling';
 import { mapEntityresult } from './components/CommonComponent';
-import {Entity,View} from './components/ModelComponent';
-
+import { Entity, View } from './components/ModelComponent';
+import { Icon } from '@fluentui/react';
+import { FilterComponent } from './components/FilterComponent';
 
 //Roshan Pandey is a good boy
 // const dragOptions = {
@@ -48,9 +49,12 @@ export interface AutoCompleteEntityComponentProps {
 export const AutoCompleteEntityComponent = React.memo((props: AutoCompleteEntityComponentProps) => {
     const [hideDialog, { toggle: toggleHideDialog }] = useBoolean(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isFilterDialogOpen, setIsFilterDialogOpen] = useState<any>(false);
 
-    const openDialog = () => setIsDialogOpen(true);
-    const closeDialog = () => setIsDialogOpen(false);
+    const openDialog = (): any => setIsDialogOpen(true);
+    const closeDialog = (): any => setIsDialogOpen(false);
+    const openFilterDialog = () => setIsFilterDialogOpen(true);
+    const closeFilterDialog = () => setIsFilterDialogOpen(false);
     const [option, setOptions] = useState<IComboBoxOption[]>([]);
     const [optionV, setOptionVs] = useState<IComboBoxOption[]>([]);
     // const [filtoption, setFiltOptions] = useState<IComboBoxOption[]>([]);
@@ -58,6 +62,7 @@ export const AutoCompleteEntityComponent = React.memo((props: AutoCompleteEntity
     // const [key, setKey] = useState<string | number | null>();
     const entitySetValues: IComboBoxOption[] = [];
     const viewSetValues: IComboBoxOption[] = [];
+    const [allViews,setAllViews] = useState<any>([]);
     const [isView, setIsView] = useState(true);
     const [entityName, setEntityName] = useState<string>('');
     const [viewName, setViewName] = useState('');
@@ -73,19 +78,23 @@ export const AutoCompleteEntityComponent = React.memo((props: AutoCompleteEntity
     // const [count, setCount] = useState(10);
     // const [pagingCookie, setPagingCookie] = useState<string | null>(null);
     // const [hasMoreRecords, setHasMoreRecords] = useState(true);
-    const [isNext,setIsNext] = useState(true);
-    const[currentp,setCurrentP] = useState(1);
-    const [isPrev,setIsPrev] = useState(false);
- //new
- let allRecords:any = [];
- let currentPage = 1; // Track the current page
-const recordsPerPage = 10;
+    const [isNext, setIsNext] = useState(true);
+    const [currentp, setCurrentP] = useState(1);
+    const [isPrev, setIsPrev] = useState(false);
+    const [keys, setAllKeys] = useState<any>([]);
+    //new
+    let allRecords: any = [];
+    let currentPage = 1; // Track the current page
+    const recordsPerPage = 10;
+    const [count, setCount] = useState(0);
+    const [allData, setAllData] = useState<any>([]);
+
 
 
     let vname = '';
     let fname = '';
-    let recordData :any = [];
-    let finalRecordData :any = [];
+    let recordData: any = [];
+    let finalRecordData: any = [];
     // const columns: IColumn[] = [
     //     {
     //         key: 'column1',
@@ -166,13 +175,19 @@ const recordsPerPage = 10;
             if (result.entities.length > 0) {
                 setIsView(false);
             }
+            const viewsOptionsWithXML:any=[];
             result.entities.forEach((d) => {
                 viewSetValues.push({
                     text: d.name, key: d.savedqueryid
                 })
+                viewsOptionsWithXML.push({
+                    viewId:d.savedqueryid,
+                    fetchXml:d.fetchxml
+                })
             })
 
             setOptionVs(viewSetValues);
+            setAllViews(viewsOptionsWithXML);
             setIsView(false);
         } catch (error) {
             console.error(error);
@@ -182,13 +197,13 @@ const recordsPerPage = 10;
 
     const mapForButtonColor = () => {
         recordSetValue.forEach((d: any) => {
-            if(d.name==undefined){
-                if(d.fullname==fname){
+            if (d.name == undefined) {
+                if (d.fullname == fname) {
                     d.isBlue = 'Yes';
                 }
             }
-            else{
-                if(d.name==fname){
+            else {
+                if (d.name == fname) {
                     d.isBlue = 'Yes';
                 }
             }
@@ -235,6 +250,7 @@ const recordsPerPage = 10;
         setIsPrev(false);
         setIsNext(true);
         allRecords = [];
+        setCount(0);
         setIsView(true);
         fetchAndMapViews(option?.text.toString() || '');
         // props.onChanges(option?.text);
@@ -247,13 +263,14 @@ const recordsPerPage = 10;
             setIsLoading(true);
             const fvalue = entityName + ',' + viewid;
             // setValue(fvalue);
-            const viewResult = await props.context.webAPI.retrieveRecord("savedquery", viewid);
-            if (viewResult.fetchxml) {
-               
-              const data = await fetchRecords(entityName,viewid,currentPage);
+            //const viewResult = await props.context.webAPI.retrieveRecord("savedquery", viewid);
+            const viewResult = allViews.filter((d:any)=>d.viewId==viewid)[0];
+            if (viewResult.fetchXml) {
+
+                const data = await fetchRecords(entityName, viewid, currentPage);
 
                 if (data.length > 0) {
-                    if(data.length<10){
+                    if (data.length < 10) {
                         setIsNext(false);
                     }
                     const keys = Object.keys(data[0]);
@@ -261,7 +278,7 @@ const recordsPerPage = 10;
 
                     mapColumns(keys);
                     setFinalRecords(recordSetValue);
-                    finalRecordData     = recordSetValue;
+                    finalRecordData = recordSetValue;
                     mapForButtonColor();
                     setIsLoading(false);
                     setISRecord(true);
@@ -277,8 +294,8 @@ const recordsPerPage = 10;
     const searchAndFilter = () => {
         if (searchText != '') {
             recordSetValue = [];
-            recordSetValue = (searchText.length < 4) ? finalRecords.filter((element:any) => element.name == searchText || element.name.toLowerCase().startsWith(searchText.toLowerCase())) :
-                finalRecords.filter((element:any) => element.name == searchText || element.name.toLowerCase().includes(searchText.toLowerCase()));
+            recordSetValue = (searchText.length < 4) ? finalRecords.filter((element: any) => element.name == searchText || element.name.toLowerCase().startsWith(searchText.toLowerCase())) :
+                finalRecords.filter((element: any) => element.name == searchText || element.name.toLowerCase().includes(searchText.toLowerCase()));
             mapForButtonColor();
             setRecords(recordSetValue);
         }
@@ -289,24 +306,24 @@ const recordsPerPage = 10;
         }
     }
     const setTextField = (textName: any) => {
-        const fillName  = (textName.name==undefined)?textName.fullname:textName.name;
+        const fillName = (textName.name == undefined) ? textName.fullname : textName.name;
         setFieldName(fillName);
-        const frt = entityName + ',' +vname + ',' +fillName;
+        const frt = entityName + ',' + vname + ',' + fillName;
         props.onChanges(frt);
         recordSetValue = [];
         recordSetValue = recordData;
         recordSetValue.forEach((d: any) => {
-            d.isBlue = ((d.name==undefined)?d.fullname:d.name == fillName) ? 'Yes' : 'No';
+            d.isBlue = ((d.name == undefined) ? d.fullname : d.name == fillName) ? 'Yes' : 'No';
         })
-       recordData = recordSetValue;
-        
+        recordData = recordSetValue;
+
         setRecords(recordSetValue);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     // const getFetchXml = (baseFetchXml: any, pagingCookie: any) => {
     //     let modifiedFetchXml = baseFetchXml.replace('<fetch', '<fetch  count="10"');
-         
+
     //     if (pagingCookie) {
     //         modifiedFetchXml = modifiedFetchXml.replace('</fetch>', `<paging-cookie>${pagingCookie} </paging-cookie></fetch>`);
     //     }
@@ -322,7 +339,7 @@ const recordsPerPage = 10;
     const setSort = () => {
         setIsLoading(true);
         setRecords([]);
-        const m = records.sort((a:any, b:any) => {
+        const m = records.sort((a: any, b: any) => {
             if (a.name < b.name) {
                 return 1;
             }
@@ -335,8 +352,6 @@ const recordsPerPage = 10;
         setIsLoading(false);
     }
 
-
-
     const onDialogClick = () => {
 
     }
@@ -346,7 +361,7 @@ const recordsPerPage = 10;
         console.log(option?.key);
 
         setViewName(option?.key.toString() || '');
-        vname = option?.key.toString()||'';
+        vname = option?.key.toString() || '';
         console.log(viewName);
         const p = optionV.find(d => d.key == viewName);
         fetchViesAndRecords(entityName, option?.key.toString());
@@ -382,70 +397,110 @@ const recordsPerPage = 10;
         //         }
     }
 
-////new logic implemented
+    ////new logic implemented
 
-function getFetchXml1(originalFetchXml:any, pagingCookie:any) {
-    const domParser = new DOMParser();
-    const fetchXmlDocument = domParser.parseFromString(originalFetchXml, "text/xml");
+    function getFetchXml1(originalFetchXml: any, pagingCookie: any) {
+        const domParser = new DOMParser();
+        const fetchXmlDocument = domParser.parseFromString(originalFetchXml, "text/xml");
 
-    if (pagingCookie) {
-        const fetchElement = fetchXmlDocument.getElementsByTagName("fetch")[0];
-        fetchElement.setAttribute("paging-cookie", pagingCookie);
+        if (pagingCookie) {
+            const fetchElement = fetchXmlDocument.getElementsByTagName("fetch")[0];
+            fetchElement.setAttribute("paging-cookie", pagingCookie);
+        }
+
+        const xmlSerializer = new XMLSerializer();
+        return xmlSerializer.serializeToString(fetchXmlDocument);
     }
 
-    const xmlSerializer = new XMLSerializer();
-    return xmlSerializer.serializeToString(fetchXmlDocument);
-}
+    const fetchRecords = async (entityName: any, viewid: any, page: any) => {
+       // const viewResult = await props.context.webAPI.retrieveRecord("savedquery", viewid);
+       const viewResult = allViews.filter((d:any)=>d.viewId==viewid)[0];
 
- const fetchRecords = async (entityName:any, viewid:any, page:any)=> {
-    const viewResult = await props.context.webAPI.retrieveRecord("savedquery", viewid);
+        if (viewResult.fetchXml) {
+            let pagingCookie = null;
+            let hasMoreRecords = true;
 
-    if (viewResult.fetchxml) {
-        let pagingCookie = null; 
-        let hasMoreRecords = true; 
+            while (hasMoreRecords) {
+                const modifiedXml = getFetchXml1(viewResult.fetchXml, pagingCookie);
+                const recordsResult = await props.context.webAPI.retrieveMultipleRecords(entityName, `?fetchXml=${encodeURIComponent(modifiedXml)}`);
 
-        while (hasMoreRecords) {
-            const modifiedXml = getFetchXml1(viewResult.fetchxml, pagingCookie);
-            const recordsResult = await props.context.webAPI.retrieveMultipleRecords(entityName, `?fetchXml=${encodeURIComponent(modifiedXml)}`);
+                allRecords = allRecords.concat(recordsResult.entities);
+                setCount(allRecords.length);
+                setAllData(allRecords);
+                if ((recordsResult as any).fetchXmlPagingCookie) {
+                    pagingCookie = (recordsResult as any).fetchXmlPagingCookie;
+                } else {
+                    hasMoreRecords = false;
+                }
+            }
 
-            allRecords = allRecords.concat(recordsResult.entities);
+            const startIndex = (page - 1) * recordsPerPage;
+            const paginatedRecords = allRecords.slice(startIndex, startIndex + recordsPerPage);
 
-            if ((recordsResult as any).fetchXmlPagingCookie) {
-                pagingCookie = (recordsResult as any).fetchXmlPagingCookie;
+            if (paginatedRecords.length > 0) {
+                const keys = Object.keys(paginatedRecords[0]);
+                console.log(paginatedRecords); // Do something with the paginated records
+                return paginatedRecords; // Return paginated records
             } else {
-                hasMoreRecords = false; 
+                console.log("No records found for the current page.");
+                return [];
             }
         }
-
-        const startIndex = (page - 1) * recordsPerPage;
-        const paginatedRecords = allRecords.slice(startIndex, startIndex + recordsPerPage);
-
-        if (paginatedRecords.length > 0) {
-            const keys = Object.keys(paginatedRecords[0]);
-            console.log(paginatedRecords); // Do something with the paginated records
-            return paginatedRecords; // Return paginated records
-        } else {
-            console.log("No records found for the current page.");
-            return [];
-        }
     }
-}
 
-async function handleNext() {
-    currentPage  = currentp;
-    currentPage = currentPage+1; // Increment the page number
-    setCurrentP(currentPage);
-    setIsPrev(true);
-    fetchViesAndRecords(entityName,viewName);
-}
+    async function handleNext() {
+        currentPage = currentp;
+        currentPage = currentPage + 1; // Increment the page number
+        setCurrentP(currentPage);
+        setIsPrev(true);
+        fetchViesAndRecords(entityName, viewName);
+    }
 
-const handlePreviousNext = async ()=>{
-    currentPage  = currentp;
-    currentPage = currentPage-1;
-    if(currentPage==1){setIsPrev(false)}
-    setCurrentP(currentPage);
-    fetchViesAndRecords(entityName,viewName);
-}
+    const handlePreviousNext = async () => {
+        currentPage = currentp;
+        currentPage = currentPage - 1;
+        if (currentPage == 1) { setIsPrev(false) }
+        setCurrentP(currentPage);
+        fetchViesAndRecords(entityName, viewName);
+    }
+
+    const moveOnFirstPage = async () => {
+        currentPage = 1;
+        setCurrentP(currentPage);
+        if (currentPage == 1) { setIsPrev(false) }
+        fetchViesAndRecords(entityName, viewName);
+    }
+
+    const handlFilterData = (data: any, isFilter: any): any => {
+        console.log(data);
+        recordSetValue = [];
+        recordSetValue = allData;
+        if (isFilter && data[0].name != '') {
+            data.forEach((element: any) => {
+                switch (element.condition) {
+                    case 'Equals':
+                        recordSetValue = recordSetValue.filter((d: any) => {
+                            return d[element.column.toLowerCase()] === element.value; // Dynamic property access
+                        });
+                        break;
+                    case 'Contains':
+                        recordSetValue = recordSetValue.filter((d: any) => {
+                            return d[element.column.toLowerCase()]?.includes(element.value); // Optional chaining for safety
+                        });
+                        break;
+                    // Add more conditions as needed
+                    default:
+                        console.log('Invalid condition');
+                        break;
+                }
+            });
+            setRecords(recordSetValue);
+        }
+        else {
+            fetchViesAndRecords(entityName, viewName);
+        }
+
+    }
 
     return (
         <>
@@ -463,8 +518,8 @@ const handlePreviousNext = async ()=>{
                             ['@media (min-width: 480px)']: {
                                 minWidth: 450,
                                 maxWidth: '1000px',
-                                width:'1000px',
-                                padding:'30px'
+                                width: '1000px',
+                                padding: '30px'
                             }
                         }
                     }
@@ -473,7 +528,8 @@ const handlePreviousNext = async ()=>{
                 <div className='dialog_container'>
                     <div className='main-head dflex'>
                         <h1 className='head'>Entity And Views Selection</h1>
-                        <p onClick={closeDialog} className='cld sbutton'>X</p>
+                        <Icon iconName="Cancel" onClick={closeDialog} className='icn' style={{ cursor: 'pointer', fontSize: '24px', color: 'red' }}
+                        />
                     </div>
                 </div>
 
@@ -506,13 +562,24 @@ const handlePreviousNext = async ()=>{
                                 />
                             }
                             <div className='listRecords' style={{ display: isRecord ? 'block' : 'none' }}>
-                                <h1 className='head mt-15'>Data Records</h1>
+                                {/* <h1 className='head mt-15'>{entityName.toUpperCase()} Records </h1> */}
                                 {isLoading ? <p className='mt-15'>Loading.......</p> :
                                     <div>
-                                        <div className='search_text dflex mt'>
-                                            <input className='isearch' type='text' value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder='Enter Name Text ' />
-                                            <button onClick={searchAndFilter} className='mbutton'>Search</button>
+                                        <div className='search_text dflex mt w-90'>
+                                            {/* <input className='isearch' type='text' value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder='Enter Name Text ' /> */}
+                                            {/* <input type="text" placeholder="Click and Apply Filter" onClick={openFilterDialog} /> */}
+                                            {/* <button onClick={searchAndFilter} className='mbutton'>Search</button> */}
+
+                                            <Icon
+                                                iconName="Filter"
+                                                onClick={openFilterDialog}
+                                                className='icnf'
+                                            />
+                                            <p className='clb' onClick={openFilterDialog}>Add Filter</p>
                                         </div>
+
+                                        {/* //for filter Dialog  */}
+                                        <FilterComponent isopen={isFilterDialogOpen} onClose={closeFilterDialog} handlFilterData={handlFilterData} initialData={columns} />
 
                                         <DetailsList
                                             items={records}
@@ -524,11 +591,35 @@ const handlePreviousNext = async ()=>{
                                         />
                                         <div className='paging-main'>
                                             <div className='crm'>
-                                            <p className='currp'>Page Number Is: {currentp}</p>
+                                                <p>{(currentp == 1) ? (Math.pow(10, currentp - 1)) : ((currentp - 1) * 10)} - {currentp * 10} of {count}</p>
                                             </div>
                                             <div className='button1'>
-                                            <button onClick={handlePreviousNext} className='mbutton' style={{display:isPrev?'block':'none'}}>Prvious</button>
-                                            <button onClick={handleNext} className='mbutton' style={{display:isNext?'block':'none'}}>Next</button>
+                                                {/* <button onClick={handlePreviousNext} className='mbutton' style={{display:isPrev?'block':'none'}}>Prvious</button> */}
+                                                {/* <Icon
+                                                    iconName="ChevronLeft"
+                                                    style={{ display: isPrev ? 'block' : 'none' }}
+                                                    onClick={moveOnFirstPage}
+                                                /> */}
+                                                <Icon
+                                                    iconName="ChevronLeft"
+                                                    style={{ display: isPrev ? 'block' : 'none' }}
+                                                    onClick={moveOnFirstPage}
+                                                    className='icn'
+                                                />
+                                                <Icon
+                                                    iconName="NavigateBack"
+                                                    className='icn'
+                                                    style={{ display: isPrev ? 'block' : 'none' }}
+                                                    onClick={handlePreviousNext}
+                                                />
+                                                {/* <button onClick={handleNext} className='mbutton' style={{ display: isNext ? 'block' : 'none' }}>Next</button> */}
+                                                <p>Page {currentp}</p>
+                                                <Icon
+                                                    iconName="NavigateForward"
+                                                    style={{ display: isNext ? 'block' : 'none' }}
+                                                    onClick={handleNext}
+                                                    className='icn'
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -539,12 +630,8 @@ const handlePreviousNext = async ()=>{
                     }
                 </div>
             </Dialog>
-
         </>
-
-
-
     );
-
 });
+
 AutoCompleteEntityComponent.displayName = 'AutoCompleteEntityComponent';

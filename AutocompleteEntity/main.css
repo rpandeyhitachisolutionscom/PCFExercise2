@@ -94,3 +94,26 @@ mpbtn{
     padding: 15px;
     width: 965px;
 }
+
+.icn{
+     font-size: 24px;
+     cursor: pointer;
+     margin-right: 8px;
+}
+
+.icnf{
+    font-size: 18px;
+    cursor: pointer;
+    margin-right: 8px;
+}
+
+.clb{
+    color: blue;
+}
+.w-90{
+    width:90px;
+    cursor: pointer;
+}
+.listRecords{
+    margin-top: 24px;
+}

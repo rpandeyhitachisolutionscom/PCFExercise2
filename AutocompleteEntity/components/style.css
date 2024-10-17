@@ -1,0 +1,57 @@
+.dflex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.disb {
+    margin-top: 30px;
+    float: right;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.clr {
+    float: left;
+    margin-top: -48px;
+    width: 228px;   
+}
+
+.btn {
+    color: white;
+    background: #1468fb;
+    color: white;
+    height: 31px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.inpt {
+    height: 46px;
+}
+
+.inptxt {
+    height: 26px;
+    margin-top: 4px;
+}
+
+.txt {
+    font-weight: 600;
+    font-size: 14px;
+
+}
+
+.link{
+    color: #1468fb;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+.addfilter{
+    margin-top: 40px;
+}
+
+.w-266{
+    width:266px;
+}

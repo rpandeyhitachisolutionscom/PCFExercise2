@@ -48,6 +48,6 @@ export const mapEntityresult  = (data:any,entityName:any):any=>{
 }
 
 
-export const mapColumns = ():any=>{
+// export const mapColumns = ():any=>{
 
-}
+// }

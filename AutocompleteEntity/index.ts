@@ -18,11 +18,11 @@ export class AutocompleteEntity implements ComponentFramework.StandardControl<II
     rootContainer: HTMLDivElement;
     selectedValue: string | null;
     context: ComponentFramework.Context<IInputs>;   
-   private Entities:Entity[]   = [];
-   private Views:View[] =[]; 
+    private Entities:Entity[]   = [];
+    private Views:View[] =[]; 
     constructor()
     {
-
+         
     }
 
     public init(context: ComponentFramework.Context<IInputs>, notifyOutputChanged: () => void, state: ComponentFramework.Dictionary, container:HTMLDivElement): void
@@ -58,6 +58,9 @@ export class AutocompleteEntity implements ComponentFramework.StandardControl<II
             );
         }
     }
+//custom action how to  execute and run ,custom api
+// register pcf on custom page and power page
+// 
 
  
     public getOutputs(): IOutputs
